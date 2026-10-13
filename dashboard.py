@@ -205,7 +205,7 @@ def main():
     args = ap.parse_args()
 
     if not os.path.exists(args.db):
-        print(f"[ERROR] 找不到 {args.db}（先跑 tsdb.py seed-demo / rollup，或 run_demo.ps1）")
+        print(f"  [ERROR] 找不到 {args.db}（先跑 tsdb.py seed-demo / rollup，或 run_demo.ps1）")
         sys.exit(1)
 
     conn = sqlite3.connect(args.db)

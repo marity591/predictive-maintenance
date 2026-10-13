@@ -129,7 +129,7 @@ def handle_client(conn: socket.socket, addr, sim: DeviceSimulator, unit_id: int,
                     payload = b"".join(struct.pack(">H", v & 0xFFFF) for v in vals)
                     resp_pdu = struct.pack(">BB", fc, len(payload)) + payload
                     if verbose:
-                        print(f"[SIM] 读寄存器 addr={start} qty={qty} -> {vals}", flush=True)
+                        print(f"  [SIM] 读寄存器 addr={start} qty={qty} -> {vals}", flush=True)
 
             resp = struct.pack(">HHHB", txid, pid, len(resp_pdu) + 1, unit_id) + resp_pdu
             conn.sendall(resp)
@@ -178,7 +178,7 @@ def main():
         while True:
             conn, addr = srv.accept()
             if args.verbose:
-                print(f"[SIM] 客户端接入 {addr}", flush=True)
+                print(f"  [SIM] 客户端接入 {addr}", flush=True)
             threading.Thread(target=handle_client,
                              args=(conn, addr, sim, args.unit, args.verbose),
                              daemon=True).start()

@@ -88,7 +88,7 @@ def main():
         imported, last_id = ingest(args.source, args.db, args.device, args.batch)
     except (OSError, sqlite3.Error, ValueError) as exc:
         ap.exit(1, f"[ingest] 失败，导入数据/游标事务未提交：{exc}\n")
-    print(f"[ingest] 提交 {imported} 条源记录，device={args.device}，last_id={last_id}")
+    print(f"  [ingest] 提交 {imported} 条源记录，device={args.device}，last_id={last_id}")
 
 
 if __name__ == "__main__":

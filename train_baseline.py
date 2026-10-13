@@ -244,7 +244,7 @@ def main():
     args = ap.parse_args()
 
     if not os.path.exists(args.data):
-        print(f"[ERROR] 找不到数据集 {args.data}，请先跑 make_dataset.py")
+        print(f"  [ERROR] 找不到数据集 {args.data}，请先跑 make_dataset.py")
         sys.exit(1)
 
     rows = load_csv(args.data)

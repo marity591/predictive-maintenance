@@ -46,14 +46,14 @@ def main():
     args = ap.parse_args()
 
     b = MiniBroker(host=args.host, port=args.port).start()
-    print(f"[broker] 迷你 MQTT Broker 已启动 → {args.host}:{args.port}", flush=True)
+    print(f"  [broker] 迷你 MQTT Broker 已启动 → {args.host}:{args.port}", flush=True)
     print("[broker] 停止：Ctrl+C；这是开发用 Broker，请勿用于生产", flush=True)
 
     started = time.time()
     try:
         while True:
             time.sleep(args.interval)
-            print(f"[broker] stats={b.stats}  已收消息={len(b.received)}  "
+            print(f"  [broker] stats={b.stats}  已收消息={len(b.received)}  "
                   f"在线客户端={len(b.clients)}", flush=True)
             if args.seconds and (time.time() - started) >= args.seconds:
                 break
@@ -63,7 +63,7 @@ def main():
         if args.dump_json and b.received:
             print(json.dumps([{"topic": t, "payload": p.decode("utf-8", "replace")}
                               for t, p in b.received], ensure_ascii=False, indent=2))
-        print(f"[broker] 最终统计: {b.stats}  共收 {len(b.received)} 条消息", flush=True)
+        print(f"  [broker] 最终统计: {b.stats}  共收 {len(b.received)} 条消息", flush=True)
         b.stop()
 
 

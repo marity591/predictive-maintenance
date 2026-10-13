@@ -166,7 +166,7 @@ def main():
     args = ap.parse_args()
 
     if not os.path.exists(args.db):
-        print(f"[ERROR] 找不到数据库 {args.db}，请先跑 collector.py")
+        print(f"  [ERROR] 找不到数据库 {args.db}，请先跑 collector.py")
         sys.exit(1)
 
     rows = load(args.db)

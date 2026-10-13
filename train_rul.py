@@ -152,7 +152,7 @@ def main():
     args = ap.parse_args()
 
     if not os.path.exists(args.data):
-        print(f"[ERROR] 找不到 {args.data}"); sys.exit(1)
+        print(f"  [ERROR] 找不到 {args.data}"); sys.exit(1)
 
     rows = load_csv(args.data)
     # * B3 修复：这里只建【不含基线】的基础特征；

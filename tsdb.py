@@ -323,14 +323,14 @@ def cmd_verify(conn, args):
     conn.execute("DELETE FROM ts_agg")
     conn.commit()
     n = seed_demo(conn, hours=24, interval_s=1, device="line1")
-    print(f"[verify]    写入 {n} 行原始点")
+    print(f"  [verify]    写入 {n} 行原始点")
 
     print("[verify] 2) 降采样为 1 分钟桶 …")
     t0 = time.perf_counter()
     rollup(conn, interval_s=60)
     t_roll = time.perf_counter() - t0
     s = stats(conn, args.db)
-    print(f"[verify]    rollup 用时 {t_roll:.2f}s，聚合表 {s['agg_rows']} 行，"
+    print(f"  [verify]    rollup 用时 {t_roll:.2f}s，聚合表 {s['agg_rows']} 行，"
           f"压缩比 1/{s.get('ratio', 0):.1f}")
 
     print("[verify] 3) 抽查一个桶，核对 avg/min/max 是否与原始数据一致 …")
@@ -344,11 +344,11 @@ def cmd_verify(conn, args):
         (b, b + 60)).fetchone()
     ok = (abs(row["avg"] - raw[0]) < 1e-9 and abs(row["min"] - raw[1]) < 1e-9
           and abs(row["max"] - raw[2]) < 1e-9 and row["cnt"] == raw[3])
-    print(f"[verify]    桶 @ {fmt_ts(b)}  cnt={row['cnt']}  "
+    print(f"  [verify]    桶 @ {fmt_ts(b)}  cnt={row['cnt']}  "
           f"avg={fmt_num(row['avg'])} (raw {fmt_num(raw[0])})  "
           f"min={fmt_num(row['min'])} (raw {fmt_num(raw[1])})  max={fmt_num(row['max'])} (raw {fmt_num(raw[2])})")
-    print(f"[verify]    一致性校验: {'[ok] 通过' if ok else '❌ 不一致'}")
-    print(f"[verify]    推导标准差 = {std_from(row['sum_sq'], row['avg'], row['cnt']):.4f}")
+    print(f"  [verify]    一致性校验: {'[ok] 通过' if ok else '❌ 不一致'}")
+    print(f"  [verify]    推导标准差 = {std_from(row['sum_sq'], row['avg'], row['cnt']):.4f}")
 
     print("[verify] 4) 对比查询耗时：原始表 vs 聚合表（查最近 6 小时振动）")
     end = conn.execute("SELECT MAX(epoch) FROM ts_raw").fetchone()[0]
@@ -359,13 +359,13 @@ def cmd_verify(conn, args):
     t0 = time.perf_counter()
     r2 = query_agg(conn, "vibration_mm_s", "line1", start, end, 60)
     t_agg = time.perf_counter() - t0
-    print(f"[verify]    原始表: {len(r1):>6} 点，用时 {t_raw*1000:7.1f} ms")
-    print(f"[verify]    聚合表: {len(r2):>6} 点，用时 {t_agg*1000:7.1f} ms"
+    print(f"  [verify]    原始表: {len(r1):>6} 点，用时 {t_raw*1000:7.1f} ms")
+    print(f"  [verify]    聚合表: {len(r2):>6} 点，用时 {t_agg*1000:7.1f} ms"
           f"   → 点数减少 {len(r1)/max(1,len(r2)):.0f} 倍，"
           f"耗时降低 {(1 - t_agg/max(t_raw,1e-9))*100:.1f}%")
     print("[verify] 5) 保留策略演练（删除 1 天前的原始点，聚合保留）")
     gone, cutoff = retention(conn, raw_days=1, dry_run=True)
-    print(f"[verify]    将会删除 {gone} 行原始点（cutoff={fmt_ts(cutoff)}），聚合表不受影响")
+    print(f"  [verify]    将会删除 {gone} 行原始点（cutoff={fmt_ts(cutoff)}），聚合表不受影响")
     print("=" * 66)
     return 0 if ok else 1
 
@@ -394,33 +394,33 @@ def main():
     init_db(conn)
 
     if args.cmd == "init":
-        print(f"[tsdb] 已初始化 {os.path.abspath(args.db)}")
+        print(f"  [tsdb] 已初始化 {os.path.abspath(args.db)}")
     elif args.cmd == "seed-demo":
         n = seed_demo(conn, args.hours, args.interval, args.device)
-        print(f"[tsdb] 已写入 {n} 行原始点（{args.hours} 小时 / {args.interval}s）→ {os.path.abspath(args.db)}")
+        print(f"  [tsdb] 已写入 {n} 行原始点（{args.hours} 小时 / {args.interval}s）→ {os.path.abspath(args.db)}")
     elif args.cmd == "rollup":
         t0 = time.perf_counter()
         rollup(conn, args.interval, args.device, args.since)
-        print(f"[tsdb] 降采样完成（桶宽 {args.interval}s），用时 {time.perf_counter()-t0:.2f}s")
+        print(f"  [tsdb] 降采样完成（桶宽 {args.interval}s），用时 {time.perf_counter()-t0:.2f}s")
         cmd_stats(conn, args)
     elif args.cmd == "query":
         end = time.time() + 1
         start = end - args.last
         if args.resolution == "raw":
             rows = query_raw(conn, args.metric, args.device, start, end)
-            print(f"[tsdb] raw  {len(rows)} 点（最近 {args.last:.0f}s）")
+            print(f"  [tsdb] raw  {len(rows)} 点（最近 {args.last:.0f}s）")
             for r in rows[-args.limit:]:
                 print(f"   {fmt_ts(r['epoch'])}  {fmt_num(r['value'])}")
         else:
             rows = query_agg(conn, args.metric, args.device, start, end, 60)
-            print(f"[tsdb] 1m   {len(rows)} 桶（最近 {args.last:.0f}s）")
+            print(f"  [tsdb] 1m   {len(rows)} 桶（最近 {args.last:.0f}s）")
             for r in rows[-args.limit:]:
                 print(f"   {fmt_ts(r['bucket_epoch'])}  avg={fmt_num(r['avg'])} "
                       f"min={fmt_num(r['min'])} max={fmt_num(r['max'])} cnt={r['cnt']} "
                       f"std={fmt_num(std_from(r['sum_sq'], r['avg'], r['cnt']))}")
     elif args.cmd == "retention":
         gone, cutoff = retention(conn, args.raw_days, args.dry_run)
-        print(f"[tsdb] {'将' if args.dry_run else '已'}删除 {gone} 行原始点"
+        print(f"  [tsdb] {'将' if args.dry_run else '已'}删除 {gone} 行原始点"
               f"（早于 {fmt_ts(cutoff)}）；聚合数据不受影响")
     elif args.cmd == "stats":
         cmd_stats(conn, args)

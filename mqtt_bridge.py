@@ -117,13 +117,13 @@ def main():
     args = ap.parse_args()
 
     if not os.path.exists(args.db):
-        print(f"[ERROR] 找不到 {args.db}（先跑 collector.py 或 run_demo.ps1）")
+        print(f"  [ERROR] 找不到 {args.db}（先跑 collector.py 或 run_demo.ps1）")
         sys.exit(1)
 
  # ---------------- 游标 ----------------
     last_id = 0 if args.reset_cursor else load_cursor(args.topic_device)
     if last_id:
-        print(f"[bridge] 从磁盘游标恢复：last_id=#{last_id}"
+        print(f"  [bridge] 从磁盘游标恢复：last_id=#{last_id}"
               f"（{cursor_path(args.topic_device)}）→ 断网/重启期间的数据将补发")
     else:
         print("[bridge] 游标为 0，从最早的数据开始发送")
@@ -134,7 +134,7 @@ def main():
         port = args.port if args.port != 1883 else 18830
         broker = MiniBroker(port=port).start()
         time.sleep(0.3)
-        print(f"[mqtt] 内置迷你 Broker 已启动 127.0.0.1:{port}")
+        print(f"  [mqtt] 内置迷你 Broker 已启动 127.0.0.1:{port}")
 
     client = None
     if not args.dry_run:
@@ -143,7 +143,7 @@ def main():
         if rc != 0:
             client.disconnect()
             raise ConnectionError(f"Broker 拒绝连接：return code={rc}")
-        print(f"[mqtt] CONNECT 成功（return code={rc}）→ {args.host}:{port}")
+        print(f"  [mqtt] CONNECT 成功（return code={rc}）→ {args.host}:{port}")
 
     topic = f"factory/{args.topic_device}/telemetry"
     status_topic = f"factory/{args.topic_device}/status"
@@ -155,7 +155,7 @@ def main():
 
     sent, failed = 0, 0
     started = time.time()
-    print(f"[bridge] 目标主题 {topic}  qos={args.qos}  "
+    print(f"  [bridge] 目标主题 {topic}  qos={args.qos}  "
           f"{'（dry-run，不外发）' if args.dry_run else ''}")
 
     try:
@@ -183,11 +183,11 @@ def main():
                                 rc = client.connect()
                                 if rc != 0:
                                     raise ConnectionError(f"Broker 拒绝连接：return code={rc}")
-                                print(f"已重连，重试 #{row['id']}")
+                                print(f"  已重连，重试 #{row['id']}")
                             client.publish(topic, payload, qos=args.qos)
                         except OSError as e:
                             failed += 1
-                            print(f"#{row['id']} 未确认（{e.__class__.__name__}: {e}）—— "
+                            print(f"  #{row['id']} 未确认（{e.__class__.__name__}: {e}）—— "
                                   f"游标仍为 #{last_id}，暂不发送后续行")
                             if client:
                                 try:
@@ -204,7 +204,7 @@ def main():
                     sent += 1
                     if sent % 10 == 0 or sent <= 3:
                         result = "客户端确认成功" if args.qos == 1 else "已写入 socket（未确认送达）"
-                        print(f" #{row['id']} {result}: vib={row['vibration_mm_s']:.2f} "
+                        print(f"  #{row['id']} {result}: vib={row['vibration_mm_s']:.2f} "
                               f"temp={row['temperature_c']:.1f}")
                 if args.max and sent >= args.max:
                     break
@@ -223,18 +223,18 @@ def main():
             except Exception:
                 pass
         if broker:
-            print(f"[mqtt] 内置 Broker 统计: {broker.stats}")
+            print(f"  [mqtt] 内置 Broker 统计: {broker.stats}")
             broker.stop()
 
     elapsed = max(1e-6, time.time() - started)
     print("-" * 62)
     action = "预览" if args.dry_run else ("客户端确认成功" if args.qos == 1 else "写入 socket")
-    print(f"[bridge] {action} {sent} 条，失败 {failed} 次，用时 {elapsed:.1f}s，"
+    print(f"  [bridge] {action} {sent} 条，失败 {failed} 次，用时 {elapsed:.1f}s，"
           f"平均 {sent/elapsed:.2f} 条/秒")
     if args.dry_run:
         print("[bridge] dry-run 未外发，未写持久游标")
     else:
-        print(f"[bridge] 持久游标 = #{load_cursor(args.topic_device)} → 下次从后续行补发")
+        print(f"  [bridge] 持久游标 = #{load_cursor(args.topic_device)} → 下次从后续行补发")
 
 
 if __name__ == "__main__":

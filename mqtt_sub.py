@@ -40,7 +40,7 @@ def main():
 
     c = MqttClient(host=args.host, port=args.port, client_id=args.client_id)
     rc = c.connect()
-    print(f"[sub] CONNECT ok (rc={rc}) → {args.host}:{args.port}  订阅 {args.topic}")
+    print(f"  [sub] CONNECT ok (rc={rc}) → {args.host}:{args.port}  订阅 {args.topic}")
     c.subscribe(args.topic)
 
     started, got = time.time(), 0
@@ -55,10 +55,10 @@ def main():
             try:
                 obj = json.loads(text)
                 m = obj.get("metrics", {})
-                print(f"[sub] #{got} {topic}  seq={obj.get('seq')}  "
+                print(f"  [sub] #{got} {topic}  seq={obj.get('seq')}  "
                       f"vib={m.get('vibration_mm_s')}  temp={m.get('temperature_c')}")
             except json.JSONDecodeError:
-                print(f"[sub] #{got} {topic}  {text[:120]}")
+                print(f"  [sub] #{got} {topic}  {text[:120]}")
             if args.count and got >= args.count:
                 break
     except KeyboardInterrupt:
@@ -67,7 +67,7 @@ def main():
         c.disconnect()
 
     print("-" * 56)
-    print(f"[sub] 共收到 {got} 条消息")
+    print(f"  [sub] 共收到 {got} 条消息")
     if got == 0:
         print("[sub] [warn] 一条都没收到：检查 Broker 是否在跑、主题是否匹配、桥接是否已启动")
         sys.exit(2)

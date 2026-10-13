@@ -93,6 +93,7 @@ def load_csv(path):
                 "severity": float(r["severity"]),
                 "run": int(r.get("run", 1)),        # * E3：运行段标识
                 "_idx": int(r.get("idx", len(rows))),
+                "_ts": r.get("ts", ""),
             })
     # * E3 修复：按 (运行段, 时间序) 排好，窗口才有因果意义
     rows.sort(key=lambda r: (r["run"], r["_idx"]))
@@ -114,6 +115,17 @@ def build_base_features(rows, window=10):
     #   不同运行段之间没有时间连续性，跨段取窗口等于把两段随意拼接 [err]
     #   按 run 分组、组内按时间顺序各自构造；dict 保持插入顺序，
     #   因此输出顺序与输入顺序一致 → 调用方的 groups/target 数组仍然对齐 [ok]
+    # 输入必须是【按 run 连续排列】的（同一运行段的行不能被打断后再出现），
+    # 否则按组构造会与调用方的 groups/target 数组错位（静默错配）。
+    _seen, _cur = set(), None
+    for _r in rows:
+        _rn = _r.get("run", 1)
+        if _rn != _cur:
+            if _rn in _seen:
+                raise ValueError(
+                    "输入行顺序错误：运行段 %r 的行被打断后再次出现。"
+                    "请先按 (run, 时间) 排序再调用 build_base_features()" % (_rn,))
+            _seen.add(_rn); _cur = _rn
     groups = {}
     for r in rows:
         groups.setdefault(r.get("run", 1), []).append(r)

@@ -1,4 +1,4 @@
-"""task-003 regression tests; stdlib only.
+"""
 
 Run: python -B -m unittest discover -s tests -v
 P0_REPO selects an old checkout for before/after comparison.

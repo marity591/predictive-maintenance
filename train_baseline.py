@@ -33,6 +33,7 @@ import csv
 import json
 import math
 import os
+import re
 import sys
 
 for _s in (sys.stdout, sys.stderr):

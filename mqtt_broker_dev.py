@@ -4,21 +4,21 @@
 本地开发用迷你 MQTT Broker（纯标准库）
 ================================================================
 用途：在没有 EMQX / Mosquitto 的机器上，快速起一个能收发的 Broker，
-      用于联调 `mqtt_bridge.py` / `mqtt_sub.py`。
+ 用于联调 `mqtt_bridge.py` / `mqtt_sub.py`。
 
 注意：这是**开发/自测工具**，不是生产 Broker：
-      · 单进程、内存态、无持久化、无认证、无 QoS2
-      · 生产请用 EMQX / Mosquitto / HiveMQ
+ · 单进程、内存态、无持久化、无认证、无 QoS2
+ · 生产请用 EMQX / Mosquitto / HiveMQ
 
 用法：
-    python mqtt_broker_dev.py                       # 监听 1883，一直运行
-    python mqtt_broker_dev.py --port 18830 --seconds 60
-    python mqtt_broker_dev.py --port 18830 --dump-json
+ python mqtt_broker_dev.py # 监听 1883，一直运行
+ python mqtt_broker_dev.py --port 18830 --seconds 60
+ python mqtt_broker_dev.py --port 18830 --dump-json
 
 配套（三个终端）：
-    终端1  python mqtt_broker_dev.py --port 18830 --seconds 120
-    终端2  python mqtt_sub.py  --port 18830 --topic 'factory/+/telemetry'
-    终端3  python mqtt_bridge.py --port 18830 --follow   # 连这个 Broker
+ 终端1 python mqtt_broker_dev.py --port 18830 --seconds 120
+ 终端2 python mqtt_sub.py --port 18830 --topic 'factory/+/telemetry'
+ 终端3 python mqtt_bridge.py --port 18830 --follow # 连这个 Broker
 """
 
 import argparse

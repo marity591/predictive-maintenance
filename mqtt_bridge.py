@@ -4,34 +4,34 @@
 MQTT 上行桥接（存储转发 + 持久化游标）—— 把 SQLite 里的遥测数据发到 MQTT Broker
 ================================================================
 为什么不是"采集器直接发 MQTT"：
-    工业现场网络并不总是可靠（4G 抖动、厂区 Wi-Fi 掉线）。如果采集进程直接发 MQTT，
-    断网期间的数据就丢了。正确做法是 **本地先落库、再异步上行**（store-and-forward）：
-        · 断网时：数据留在 SQLite，发送游标不越过未确认行
-        · 恢复后：从上次游标继续补发
-        · **进程重启**：游标写在磁盘上，重启后继续（而不是从头重发）
+ 工业现场网络并不总是可靠（4G 抖动、厂区 Wi-Fi 掉线）。如果采集进程直接发 MQTT，
+ 断网期间的数据就丢了。正确做法是 **本地先落库、再异步上行**（store-and-forward）：
+ · 断网时：数据留在 SQLite，发送游标不越过未确认行
+ · 恢复后：从上次游标继续补发
+ · **进程重启**：游标写在磁盘上，重启后继续（而不是从头重发）
 
 投递语义（面试考点）：
-    QoS1 下收到客户端的 PUBACK 成功返回后才保存游标；未确认行会先重试。
-    至少一次补发依赖原始库/游标完好、单一桥接写者及最终恢复连接；不承诺端到端不丢。
-    QoS0 只表示写入 socket，不能保证 Broker 收到。确认丢失或保存游标前退出可能重复；
-    消费端须用 device + seq 去重，Broker 持久化和消费端处理另行保证。
+ QoS1 下收到客户端的 PUBACK 成功返回后才保存游标；未确认行会先重试。
+ 至少一次补发依赖原始库/游标完好、单一桥接写者及最终恢复连接；不承诺端到端不丢。
+ QoS0 只表示写入 socket，不能保证 Broker 收到。确认丢失或保存游标前退出可能重复；
+ 消费端须用 device + seq 去重，Broker 持久化和消费端处理另行保证。
 
 主题设计：
-    factory/<device>/telemetry     遥测数据（JSON）
-    factory/<device>/status        连接/状态（启动与退出各发一条）
+ factory/<device>/telemetry 遥测数据（JSON）
+ factory/<device>/status 连接/状态（启动与退出各发一条）
 
 用法：
-    # ① 不要外部 Broker，就地起一个内置迷你 Broker 自测
-    python mqtt_bridge.py --builtin --topic-device line1 --max 5
+ # ① 不要外部 Broker，就地起一个内置迷你 Broker 自测
+ python mqtt_bridge.py --builtin --topic-device line1 --max 5
 
-    # ② 连真实 Broker（EMQX / Mosquitto），持续跟随
-    python mqtt_bridge.py --host 127.0.0.1 --port 1883 --topic-device line1 --follow
+ # ② 连真实 Broker（EMQX / Mosquitto），持续跟随
+ python mqtt_bridge.py --host 127.0.0.1 --port 1883 --topic-device line1 --follow
 
-    # ③ 只看会发什么、不真的连
-    python mqtt_bridge.py --dry-run --max 3
+ # ③ 只看会发什么、不真的连
+ python mqtt_bridge.py --dry-run --max 3
 
-    # ④ 想从头重发（忽略已保存的游标）
-    python mqtt_bridge.py --builtin --reset-cursor
+ # ④ 想从头重发（忽略已保存的游标）
+ python mqtt_bridge.py --builtin --reset-cursor
 """
 
 import argparse
@@ -120,7 +120,7 @@ def main():
         print(f"[ERROR] 找不到 {args.db}（先跑 collector.py 或 run_demo.ps1）")
         sys.exit(1)
 
-    # ---------------- 游标 ----------------
+ # ---------------- 游标 ----------------
     last_id = 0 if args.reset_cursor else load_cursor(args.topic_device)
     if last_id:
         print(f"[bridge] 从磁盘游标恢复：last_id=#{last_id}"
@@ -128,7 +128,7 @@ def main():
     else:
         print("[bridge] 游标为 0，从最早的数据开始发送")
 
-    # ---------------- Broker / 客户端 ----------------
+ # ---------------- Broker / 客户端 ----------------
     broker, port = None, args.port
     if args.builtin and not args.dry_run:
         port = args.port if args.port != 1883 else 18830
@@ -174,7 +174,7 @@ def main():
                     print(f"  → 预览 #{row['id']} {payload}")
                     last_id, sent = row["id"], sent + 1
                 else:
-                    # 当前行确认前，不离开内层循环；重连失败也不能跳到下一行。
+ # 当前行确认前，不离开内层循环；重连失败也不能跳到下一行。
                     while True:
                         try:
                             if client is None:
@@ -198,7 +198,7 @@ def main():
                             time.sleep(min(2 ** min(failed, 4), 15))
                             continue
                         break
-                    # 落盘失败直接报错退出，不重发后继续推进；重启可能重复当前行。
+ # 落盘失败直接报错退出，不重发后继续推进；重启可能重复当前行。
                     save_cursor(args.topic_device, row["id"])
                     last_id = row["id"]
                     sent += 1

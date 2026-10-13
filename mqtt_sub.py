@@ -4,12 +4,12 @@
 MQTT 订阅端（纯标准库）—— 观察上行链路是否真的通了
 ================================================================
 用途：
-    · 本地自测：配合 mqtt_bridge.py --builtin 看数据有没有发出来
-    · 真实环境：连 EMQX / Mosquitto 当"云侧消费者"的最简原型
+ · 本地自测：配合 mqtt_bridge.py --builtin 看数据有没有发出来
+ · 真实环境：连 EMQX / Mosquitto 当"云侧消费者"的最简原型
 
 用法：
-    python mqtt_sub.py --port 18830 --topic 'factory/+/telemetry' --count 5 --timeout 20
-    python mqtt_sub.py --host 127.0.0.1 --port 1883 --topic '#' --count 1
+ python mqtt_sub.py --port 18830 --topic 'factory/+/telemetry' --count 5 --timeout 20
+ python mqtt_sub.py --host 127.0.0.1 --port 1883 --topic '#' --count 1
 """
 
 import argparse

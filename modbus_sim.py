@@ -4,23 +4,23 @@
 Modbus TCP 从站（Slave）模拟器 —— 纯标准库实现，无需 pymodbus
 ================================================================
 用途：在没有真实 PLC / 传感器的情况下，模拟一台工业设备对外提供数据，
-      让采集程序、时序库、看板、AI 模型都能先跑起来。
+ 让采集程序、时序库、看板、AI 模型都能先跑起来。
 
 模拟 4 个保持寄存器（Holding Register，功能码 0x03）：
-    地址 0  温度  (int16, 单位 0.1 ℃)      例 285 = 28.5 ℃
-    地址 1  振动  (int16, 单位 0.01 mm/s)   例 152 = 1.52 mm/s
-    地址 2  转速  (int16, 单位 1 rpm)       例 1480 = 1480 rpm
-    地址 3  电流  (int16, 单位 0.01 A)      例 823 = 8.23 A
+ 地址 0 温度 (int16, 单位 0.1 ℃) 例 285 = 28.5 ℃
+ 地址 1 振动 (int16, 单位 0.01 mm/s) 例 152 = 1.52 mm/s
+ 地址 2 转速 (int16, 单位 1 rpm) 例 1480 = 1480 rpm
+ 地址 3 电流 (int16, 单位 0.01 A) 例 823 = 8.23 A
 
 特点：
-    · 数据带趋势 + 噪声 + 偶发尖峰，后面做特征工程 / 异常检测 / 寿命预测才有信号
-    · 支持"故障注入"：--fault-after 秒后开始劣化（振动爬升、温度上升），
-      便于演示"异常告警"与"剩余寿命预测"
+ · 数据带趋势 + 噪声 + 偶发尖峰，后面做特征工程 / 异常检测 / 寿命预测才有信号
+ · 支持"故障注入"：--fault-after 秒后开始劣化（振动爬升、温度上升），
+ 便于演示"异常告警"与"剩余寿命预测"
 
 用法：
-    python modbus_sim.py                       # 监听 127.0.0.1:5020
-    python modbus_sim.py --port 5020 --unit 1
-    python modbus_sim.py --fault-after 60      # 60 秒后开始劣化
+ python modbus_sim.py # 监听 127.0.0.1:5020
+ python modbus_sim.py --port 5020 --unit 1
+ python modbus_sim.py --fault-after 60 # 60 秒后开始劣化
 """
 
 import argparse
@@ -59,7 +59,7 @@ class DeviceSimulator:
         self.regs = [0] * REG_COUNT
         self._update()
 
-    # 劣化程度 0.0 ~ 1.0（用于演示异常/寿命预测）
+ # 劣化程度 0.0 ~ 1.0（用于演示异常/寿命预测）
     @property
     def degradation(self) -> float:
         if self.fault_after <= 0 or self.t < self.fault_after:
@@ -72,13 +72,13 @@ class DeviceSimulator:
 
     def _update(self):
         d = self.degradation
-        # 温度：随负载波动 + 劣化时上升（28.5 ℃ → 最高约 41 ℃）
+ # 温度：随负载波动 + 劣化时上升（28.5 ℃ → 最高约 41 ℃）
         temp = 28.5 + 1.2 * math.sin(self.t / 37.0) + 12.0 * d + random.gauss(0, 0.15)
-        # 振动：基础很小，劣化时明显爬升（1.5 → 6.5 mm/s）
+ # 振动：基础很小，劣化时明显爬升（1.5 → 6.5 mm/s）
         vib = 1.5 + 0.25 * abs(math.sin(self.t / 11.0)) + 5.0 * d + abs(random.gauss(0, 0.05))
-        # 转速：约 1480 rpm
+ # 转速：约 1480 rpm
         rpm = 1480 + 12 * math.sin(self.t / 23.0) + random.gauss(0, 1.5)
-        # 电流：约 8.2 A，劣化时上升
+ # 电流：约 8.2 A，劣化时上升
         curr = 8.2 + 0.3 * math.sin(self.t / 19.0) + 1.6 * d + random.gauss(0, 0.03)
 
         with self.lock:
@@ -153,7 +153,7 @@ def main():
 
     sim = DeviceSimulator(fault_after=args.fault_after)
 
-    # 后台推进模拟时间
+ # 后台推进模拟时间
     def ticker():
         while True:
             time.sleep(1.0)

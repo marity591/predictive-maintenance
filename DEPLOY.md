@@ -1,6 +1,6 @@
 # 部署说明（Docker Compose 一键起全栈）
 
->  **诚实声明**：本文件是在**本机未安装 Docker** 的环境下编写的 ——
+> **诚实声明**：本文件是在**本机未安装 Docker** 的环境下编写的 ——
 > 因此它经过的是 **YAML 语法校验 + 服务命令本地冒烟测试 + 跨文件引用检查**，
 > **没有真的跑过容器**。首次 `docker compose up` 若报错，请把报错发我，我按实际修。
 > （这也是工程里应有的态度：没验证过的部分要说清楚，而不是假装跑通了。）
@@ -11,21 +11,21 @@
 
 ```
 predictive-maintenance/
-├── Dockerfile  统一运行镜像（base 零依赖 / modeling 含 numpy+sklearn）
-├── docker-compose.yml  6 个服务 + 1 个按需建模服务
-├── deploy/mosquitto.conf  Broker 配置（本地演示放开匿名，生产要改）
-├── data/  所有持久化数据都在这（容器重建不丢）
-│  ├── sensor.db  collector 落库的原始点
-│  ├── tsdb.db  时序库（原始 + 1 分钟聚合）
-│  └── mosquitto/  Broker 持久化
-├── logs/ · docs/ · models/  日志 / 报告与看板 / 模型产物
-└── *.py  采集 / 模拟器 / 分析 / 桥接 / 时序库 / 看板 / 建模
+├── Dockerfile 统一运行镜像（base 零依赖 / modeling 含 numpy+sklearn）
+├── docker-compose.yml 6 个服务 + 1 个按需建模服务
+├── deploy/mosquitto.conf Broker 配置（本地演示放开匿名，生产要改）
+├── data/ 所有持久化数据都在这（容器重建不丢）
+│ ├── sensor.db collector 落库的原始点
+│ ├── tsdb.db 时序库（原始 + 1 分钟聚合）
+│ └── mosquitto/ Broker 持久化
+├── logs/ · docs/ · models/ 日志 / 报告与看板 / 模型产物
+└── *.py 采集 / 模拟器 / 分析 / 桥接 / 时序库 / 看板 / 建模
 
 数据流：
-  simulator ──Modbus TCP:5020──▶ collector ──▶ SQLite(sensor.db)
-  ├──▶ bridge ──MQTT:1883──▶ broker
-  └──▶ ingest.py ──▶ tsdb.db/ts_raw
-  └──▶ rollup ──▶ dashboard ──▶ :8080
+ simulator ──Modbus TCP:5020──▶ collector ──▶ SQLite(sensor.db)
+ ├──▶ bridge ──MQTT:1883──▶ broker
+ └──▶ ingest.py ──▶ tsdb.db/ts_raw
+ └──▶ rollup ──▶ dashboard ──▶ :8080
 ```
 
 ## 二、服务清单
@@ -52,7 +52,7 @@ docker compose logs -f collector
 docker compose logs -f bridge
 
 # 打开看板
-#  http://localhost:8080/dashboard.html
+# http://localhost:8080/dashboard.html
 
 # 跑建模（按需，不常驻）
 docker compose --profile modeling run --rm modeling
@@ -68,11 +68,11 @@ docker compose down && rm -rf ./data/*.db ./docs/dashboard*.html
 
 | 现象 | 原因 | 处理 |
 |---|---|---|
-| `collector` 反复重连 | `simulator` 还没起来 | `depends_on` 只保证启动顺序，不保证就绪；本项目采集端有指数退避重连，等十几秒会自己连上  |
-| `bridge` 报 `ConnectionRefusedError` | Broker 还没就绪，或 mosquitto 2 默认拒绝匿名 | 确认 `deploy/mosquitto.conf` 已挂载且含 `allow_anonymous true`  |
+| `collector` 反复重连 | `simulator` 还没起来 | `depends_on` 只保证启动顺序，不保证就绪；本项目采集端有指数退避重连，等十几秒会自己连上 |
+| `bridge` 报 `ConnectionRefusedError` | Broker 还没就绪，或 mosquitto 2 默认拒绝匿名 | 确认 `deploy/mosquitto.conf` 已挂载且含 `allow_anonymous true` |
 | 看板 404 | `docs/dashboard.html` 还没生成 | 等一个循环周期（约 30s），或手动 `docker compose exec dashboard python dashboard.py --db data/tsdb.db --hours 24 --out docs/dashboard.html` |
 | `rollup` 一直没数据 | collector 只写 `sensor.db`，必须经 `ingest.py` 导入 `tsdb.db` | 查 `docker compose logs rollup` 的导入退出信息，确认源库已有 `sensor_readings`、目标可写及 device 一致；导入失败会跳过本轮聚合，下一分钟重试 |
-| 构建时 pip 很慢 | 建模层要装 numpy/sklearn | Dockerfile 里已经指向**清华 PyPI 镜像**  |
+| 构建时 pip 很慢 | 建模层要装 numpy/sklearn | Dockerfile 里已经指向**清华 PyPI 镜像** |
 | Windows 上挂载目录权限异常 | 容器内用非 root（uid 10001）写宿主目录 | 给 `./data ./logs ./docs ./models` 写权限，或临时改 `user: root` |
 
 ## 五、上线到生产时要换什么
@@ -88,11 +88,11 @@ docker compose down && rm -rf ./data/*.db ./docs/dashboard*.html
 ## 六、为什么这样设计（可写进面试）
 
 1. **每个服务只做一件事**：采集、上行、聚合、展示分离 → 任一环节坏掉不影响其它环节，
-  也便于单独扩容（例如采集多份、聚合一份）。
+ 也便于单独扩容（例如采集多份、聚合一份）。
 2. **数据落盘优先于上行**：先写 SQLite 再异步 MQTT；本地源记录与游标完好、最终恢复连接等条件下补发，不能保证磁盘损坏或下游处理失败时的完整性。
 3. **聚合与原始分离**：看板查聚合表、排查查原始表，把查询成本与取值范围解耦。
 4. **零依赖的核心脚本**：采集/桥接/时序库/看板都只用标准库 →
-  镜像小、构建快、无供应链风险、也不容易因为某个包升级而坏。
+ 镜像小、构建快、无供应链风险、也不容易因为某个包升级而坏。
 5. **诚实的交付说明**：未验证过的部分（没装 Docker）明确标注，而不是"看起来跑通了"。
 
 ## 七、显式导入与验证

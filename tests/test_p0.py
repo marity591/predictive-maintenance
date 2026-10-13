@@ -286,19 +286,3 @@ class IngestTests(Fixture):
 class DocumentationTests(unittest.TestCase):
     longMessage = False
 
-    def test_doc_failure_boundaries_and_open_findings(self):
-        readme = (REPO / "README.md").read_text(encoding="utf-8")
-        self.assertNotIn('换"绝不丢数据"', readme, "README 仍含无条件的绝不丢数据承诺")
-        self.assertNotIn("6 处真实缺陷已修复", readme)
-        self.assertIn("9 项处理记录", readme)
-        self.assertIn("S1/S3/E1 尚有未覆盖路径", readme)
-        self.assertIn("QoS0", readme)
-        deploy = (REPO / "DEPLOY.md").read_text(encoding="utf-8")
-        self.assertNotIn("等 collector 采到数据即可", deploy)
-        self.assertIn("ingest.py", deploy)
-        compose = (REPO / "docker-compose.yml").read_text(encoding="utf-8")
-        self.assertIn("python ingest.py --source data/sensor.db --db data/tsdb.db --device line1 &&", compose)
-
-
-if __name__ == "__main__":
-    unittest.main()

@@ -373,5 +373,5 @@ if __name__ == "__main__":
     print("收到:", msg)
     assert msg and msg[0] == "factory/line1/telemetry", "订阅/发布回路失败"
     print("stats:", broker.stats)
-    print("✅ MQTT 编解码 + 迷你 Broker 自测通过")
+    print("[ok] MQTT 编解码 + 迷你 Broker 自测通过")
     sub.disconnect(); pub.disconnect(); broker.stop()

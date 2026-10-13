@@ -91,10 +91,10 @@ def load_csv(path):
                 "current_a": float(r["current_a"]),
                 "health": int(r["health"]),
                 "severity": float(r["severity"]),
-                "run": int(r.get("run", 1)),        # ★ E3：运行段标识
+                "run": int(r.get("run", 1)),        # * E3：运行段标识
                 "_idx": int(r.get("idx", len(rows))),
             })
-    # ★ E3 修复：按 (运行段, 时间序) 排好，窗口才有因果意义
+    # * E3 修复：按 (运行段, 时间序) 排好，窗口才有因果意义
     rows.sort(key=lambda r: (r["run"], r["_idx"]))
     return rows
 
@@ -110,10 +110,10 @@ def build_base_features(rows, window=10):
       的健康样本上拟合，配合 sklearn Pipeline 就能保证 5 折 CV 逐折拟合 ✅
     窗口是**因果**的（只看当前及之前 window-1 个点），不含未来信息 ✅
     """
-    # ★ E3 修复（Codex task-004）：窗口【不得跨运行段】——
-    #   不同运行段之间没有时间连续性，跨段取窗口等于把两段随意拼接 ✗
+    # * E3 修复：窗口【不得跨运行段】——
+    #   不同运行段之间没有时间连续性，跨段取窗口等于把两段随意拼接 [err]
     #   按 run 分组、组内按时间顺序各自构造；dict 保持插入顺序，
-    #   因此输出顺序与输入顺序一致 → 调用方的 groups/target 数组仍然对齐 ✅
+    #   因此输出顺序与输入顺序一致 → 调用方的 groups/target 数组仍然对齐 [ok]
     groups = {}
     for r in rows:
         groups.setdefault(r.get("run", 1), []).append(r)
@@ -121,7 +121,7 @@ def build_base_features(rows, window=10):
     for g in groups.values():
         vib = [r["vibration_mm_s"] for r in g]
         for i, r in enumerate(g):
-            # ★ E2 修复（Codex task-004）：只用"当前及之前已观测到的点"，不偷看未来 ✅
+            # * E2 修复：只用"当前及之前已观测到的点"，不偷看未来 [ok]
             w = vib[max(0, i - window + 1): i + 1]
             rms = math.sqrt(mean([x * x for x in w]))
             peak = max(abs(x) for x in w)
@@ -223,13 +223,13 @@ def main():
 
     rows = load_csv(args.data)
 
-    # ★ B3 修复：先切分（按行号分层），再在各自子集上构造窗口特征；
+    # * B3 修复：先切分（按行号分层），再在各自子集上构造窗口特征；
     #   健康基线只在【训练折的健康样本】上拟合，然后冻结、transform 测试折。
     all_y = np.array([r["health"] for r in rows], dtype=int)
-    # ★ E3 修复（Codex task-004）：按【运行段】分组切分 ——
+    # * E3 修复：按【运行段】分组切分 ——
     #   原先按行分层随机切分，同一段退化过程会同时出现在训练/测试集里，
-    #   且训练与测试在时间上交错（复审 E 组指出）✗
-    #   现在：测试集里的运行段在训练时【完全没见过】，这才是能否泛化到新一次运行的诚实评价 ✅
+    #   且训练与测试在时间上交错（复审 E 组指出）[err]
+    #   现在：测试集里的运行段在训练时【完全没见过】，这才是能否泛化到新一次运行的诚实评价 [ok]
     _runs = np.array([r.get("run", 1) for r in rows])
     from sklearn.model_selection import GroupShuffleSplit
     _gss = GroupShuffleSplit(n_splits=1, test_size=args.test_size, random_state=args.seed)
@@ -244,10 +244,10 @@ def main():
     names = ALL_NAMES
     hb = HealthBaseline().fit(Xtr, ytr)                        # 只喂训练折
     meta = hb.meta()                                           # 仅取基线数值用于报告
-    # ★ E1 修复（Codex task-004）：这里【不能】再 transform ——
+    # * E1 修复：这里【不能】再 transform ——
     #   三个模型都是 Pipeline(HealthBaseline(), ...)，管线内部会追加 delta 两列；
     #   原来在切分后又 transform 一次，模型实际用的是 12 维（delta 重复两遍），
-    #   而 feature_importance 只按 10 个名字输出 → 特征描述与重要性报告不一致 ✗
+    #   而 feature_importance 只按 10 个名字输出 → 特征描述与重要性报告不一致 [err]
     y = all_y
 
     print("=" * 74)
@@ -318,8 +318,8 @@ def main():
         f.write(f"**最优模型**：{best['model']}（F1={best['f1']:.4f}，召回={best['recall']:.4f}）\n")
 
     os.makedirs("models", exist_ok=True)
-    # ★ B6 修复（Codex task-002）：models/ 在 .gitignore 里，
-    # 全新 clone 没有该目录 → 原来 open() 会直接 FileNotFoundError ✗
+    # * B6 修复：models/ 在 .gitignore 里，
+    # 全新 clone 没有该目录 → 原来 open() 会直接 FileNotFoundError [err]
     os.makedirs("models", exist_ok=True)
     with open("models/model.json", "w", encoding="utf-8") as f:
         json.dump({"features": names, "baseline": meta,

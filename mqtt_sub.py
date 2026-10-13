@@ -69,7 +69,7 @@ def main():
     print("-" * 56)
     print(f"[sub] 共收到 {got} 条消息")
     if got == 0:
-        print("[sub] ⚠️ 一条都没收到：检查 Broker 是否在跑、主题是否匹配、桥接是否已启动")
+        print("[sub] [warn] 一条都没收到：检查 Broker 是否在跑、主题是否匹配、桥接是否已启动")
         sys.exit(2)
 
 

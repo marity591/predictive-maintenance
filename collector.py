@@ -74,7 +74,7 @@ def parse_read_response(sock: socket.socket, expect_txid: int, qty: int):
     """解析 FC=0x03 响应，返回原始寄存器值列表"""
     header = recv_exact(sock, 7)
     txid, _pid, length, _unit = struct.unpack(">HHHB", header)
-    # B4 修复（Codex task-002）：MBAP 的 length 非法时（0 或超上限），原来会
+    # B4 修复：MBAP 的 length 非法时（0 或超上限），原来会
     # 走到 recv(-1) 或用过短 body 切片 → IndexError/struct.error 逃出重连循环崩进程
     if not (2 <= length <= 260):
         raise ValueError(f"非法 MBAP length={length}（合法范围 2~260）")

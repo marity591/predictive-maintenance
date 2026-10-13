@@ -134,15 +134,15 @@ def rollup(conn, interval_s: int = 60, device: str = None, since: float = 0.0):
         where += " AND device = ?"
         params.append(device)
 
-    # ★ A1 修复（Codex task-002 指出）：原来是无条件 UPSERT ——
+    # * A1 修复：原来是无条件 UPSERT ——
     #   当 retention 已删掉某历史桶的部分原始点后，再跑 rollup 会用【不完整】的
     #   COUNT/AVG 覆盖掉当初由完整数据算出的聚合值（实测 60/29.5/0/59 → 30/44.5/30/59）。
     #   现在只允许"原始点不少于已有聚合"时才覆盖（见下面的 WHERE 子句）：
-    #     · 桶的原始点已被删掉一部分 → excluded.cnt < ts_agg.cnt → 保留历史聚合 ✅
-    #     · 桶有新到的原始点（cnt 变大）或数量相同（重算） → 正常更新 ✅
-    # ★ A/B 修复（Codex task-004）：用"删除水位"替代原来的 COUNT 守卫 ——
-    #   · 桶起点 >= 水位：该桶的原始范围从未被删除过 → 自由重算（计数可升可降，合法更正也能生效 ✅）
-    #   · 桶起点 <  水位：与已删除范围相交，历史成员不可复现 → 【不参与本次重算】，已有聚合冻结 ✅
+    #     · 桶的原始点已被删掉一部分 → excluded.cnt < ts_agg.cnt → 保留历史聚合 [ok]
+    #     · 桶有新到的原始点（cnt 变大）或数量相同（重算） → 正常更新 [ok]
+    # * A/B 修复：用"删除水位"替代原来的 COUNT 守卫 ——
+    #   · 桶起点 >= 水位：该桶的原始范围从未被删除过 → 自由重算（计数可升可降，合法更正也能生效 [ok]）
+    #   · 桶起点 <  水位：与已删除范围相交，历史成员不可复现 → 【不参与本次重算】，已有聚合冻结 [ok]
     deleted_before = _deleted_before(conn)
     _iv = int(interval_s)
     _wl = f" CAST(epoch / {_iv} AS INTEGER) * {_iv} >= ?"
@@ -167,7 +167,7 @@ def rollup(conn, interval_s: int = 60, device: str = None, since: float = 0.0):
 
 
 def std_from(sum_sq, avg, cnt):
-    # 已知数值局限（Codex task-001 S2）：这是平方和相减式公式，
+    # 已知数值局限：这是平方和相减式公式，
     # 在【均值大、方差极小】时会发生灾难性抵消 ——
     # 60 个 1480±1e-5 的样本真值 σ≈1e-5，本函数返回 0（100% 误差）。
     # 当前 demo 最低桶 σ≈1.06 rpm、最大误差仅 3.5e-10，尚不影响使用；
@@ -198,7 +198,7 @@ def query_agg(conn, metric, device, start, end, interval_s=60):
     if end <= start:
         return []
     lo = math.floor(start / interval_s) * interval_s
-    # ★ A3 修复（Codex task-002）：原来用 int(end) 截断，end=60.1 会算成 60、
+    # * A3 修复：原来用 int(end) 截断，end=60.1 会算成 60、
     #   漏掉本应与窗口相交的桶 60；而 time.time() 本来就返回小数，这不是理论边界。
     hi = int(math.ceil(end / interval_s)) * interval_s   # 相交桶：向上取整到桶边界
     return conn.execute(
@@ -221,20 +221,20 @@ def _deleted_before(conn):
     row = conn.execute("SELECT value FROM ts_meta WHERE key='raw_deleted_before'").fetchone()
     if row is not None:
         return float(row[0])
-    # ★ task-005 P1 修复：缺记录时【不能】静默返回 0.0 ✗
-    #   那样一个"既有库"会被当成"从未删除过"，再次用不完整原始集合覆盖历史聚合 ✗
+    # *
+    #   那样一个"既有库"会被当成"从未删除过"，再次用不完整原始集合覆盖历史聚合 [err]
     #   区分两种情况：
-    #     · 新库（ts_agg 为空）→ 确实没删除过 → 0.0 安全 ✅
-    #     · 既有库（ts_agg 非空）→ 历史删除情况【未知】→ 明确报错，要求人工声明截点或重建 ✅
+    #     · 新库（ts_agg 为空）→ 确实没删除过 → 0.0 安全 [ok]
+    #     · 既有库（ts_agg 非空）→ 历史删除情况【未知】→ 明确报错，要求人工声明截点或重建 [ok]
     agg_rows = conn.execute("SELECT COUNT(*) FROM ts_agg").fetchone()[0]
     if agg_rows == 0:
         # 新库：确认"从未删除过"，并把 0.0 持久化 ——
-        # ★ 否则第一次 rollup 产生聚合后，第二次调用会把它误判成"既有库"而报错 ✗
+        # * 否则第一次 rollup 产生聚合后，第二次调用会把它误判成"既有库"而报错 [err]
         conn.execute("INSERT OR IGNORE INTO ts_meta(key, value) VALUES('raw_deleted_before', 0.0)")
         return 0.0
     raise RuntimeError(
         "检测到【既有数据库】缺少删除水位记录（ts_meta.raw_deleted_before）：\n"
-        "  该库已有 %d 行聚合，但历史删除情况未知，无法保证聚合完整性 ✗\n"
+        "  该库已有 %d 行聚合，但历史删除情况未知，无法保证聚合完整性 [err]\n"
         "  请二选一（不要用当前数量当作完整性证据）：\n"
         "    ① 显式声明历史删除截点：\n"
         "       python -c \"import tsdb; c=tsdb.connect('data/tsdb.db'); "
@@ -257,8 +257,8 @@ def mark_deleted_before(conn, cutoff):
 
 def _set_deleted_before(conn, cutoff):
     conn.execute("CREATE TABLE IF NOT EXISTS ts_meta (key TEXT PRIMARY KEY, value REAL)")
-    # ★ 注意：这里必须【直读原始行】，不能调用带守卫的 _deleted_before() ——
-    #   否则迁移函数会被自己的守卫挡住（既有库正因缺记录才需要迁移）✗
+    # * 注意：这里必须【直读原始行】，不能调用带守卫的 _deleted_before() ——
+    #   否则迁移函数会被自己的守卫挡住（既有库正因缺记录才需要迁移）[err]
     row = conn.execute("SELECT value FROM ts_meta WHERE key='raw_deleted_before'").fetchone()
     old_v = float(row[0]) if row is not None else 0.0
     new = max(old_v, float(cutoff))
@@ -273,7 +273,7 @@ def retention(conn, raw_days: float, dry_run=False):
     n = conn.execute("SELECT COUNT(*) FROM ts_raw WHERE epoch < ?", (cutoff,)).fetchone()[0]
     if not dry_run:
         conn.execute("DELETE FROM ts_raw WHERE epoch < ?", (cutoff,))
-        _set_deleted_before(conn, cutoff)      # ★ 与删除【同事务】落盘（不 commit 两次）
+        _set_deleted_before(conn, cutoff)      # * 与删除【同事务】落盘（不 commit 两次）
         conn.commit()
     return n, cutoff
 
@@ -347,7 +347,7 @@ def cmd_verify(conn, args):
     print(f"[verify]    桶 @ {fmt_ts(b)}  cnt={row['cnt']}  "
           f"avg={fmt_num(row['avg'])} (raw {fmt_num(raw[0])})  "
           f"min={fmt_num(row['min'])} (raw {fmt_num(raw[1])})  max={fmt_num(row['max'])} (raw {fmt_num(raw[2])})")
-    print(f"[verify]    一致性校验: {'✅ 通过' if ok else '❌ 不一致'}")
+    print(f"[verify]    一致性校验: {'[ok] 通过' if ok else '❌ 不一致'}")
     print(f"[verify]    推导标准差 = {std_from(row['sum_sq'], row['avg'], row['cnt']):.4f}")
 
     print("[verify] 4) 对比查询耗时：原始表 vs 聚合表（查最近 6 小时振动）")

@@ -39,7 +39,7 @@ for _s in (sys.stdout, sys.stderr):
         pass
 
 # (测点名, 显示名, 颜色, 显示系数)
-# ★ 显示系数必须为 1.0：库里的值在采集阶段就已经换算成工程量了
+# * 显示系数必须为 1.0：库里的值在采集阶段就已经换算成工程量了
 #   （collector.py 用 0.1/0.01 把寄存器原始整数换算成 ℃/mm/s/A）。
 #   这里曾经误填 100/10，导致看板上振动显示成 386 mm/s —— 典型的
 #   "标定系数用了两次"错误，两个阶段各换算一次就放大成 10000 倍。
@@ -121,7 +121,7 @@ def panel_svg(rows, label, color, scale, sigma=3.0, width=1040, height=250, pad=
     maxs = [r["max"] for r in rows]
 
     # 健康基线：取窗口前 30% 的桶（与 analyze.py 的原则一致：基线只能用健康段）
-    # ⚠️ 这【不保证是健康段】（Codex task-001 S5）：若窗口起点已在劣化期，
+    # [warn] 这【不保证是健康段】：若窗口起点已在劣化期，
     #    基线会被劣化值污染、越限直接归零（实测 10 个越限 → 0 个）。
     #    需要可靠基线时请指定已知健康时段或改用持久化标定参数；
     #    没有健康依据时应把它当作窗口参考，而不是正常水平。
@@ -133,12 +133,12 @@ def panel_svg(rows, label, color, scale, sigma=3.0, width=1040, height=250, pad=
     ymin = min(min(mins), lo)
     ymax = max(max(maxs), hi)
     span = ymax - ymin
-    if span <= 1e-12:      # 常量序列也要有可画的纵轴范围（task-001 EXTRA-3）
+    if span <= 1e-12:      # 常量序列也要有可画的纵轴范围
         span = max(abs(bm) * 1e-6, 1e-9)
     ymin -= span * 0.06
     ymax += span * 0.06
 
-    # 横坐标按【真实时间】定位（task-001 E2）：原来按序号均分，
+    # 横坐标按【真实时间】定位：原来按序号均分，
     # 缺采的间隔会被画成等距，斜率与断采都被歪曲（实测 60s 与 3540s 两段等宽）
     t_span = (xs[-1] - xs[0]) or 1.0
 
@@ -214,7 +214,7 @@ def main():
     t0 = time.perf_counter()
     st = load_db_stats(conn, args.db)
     end = st["t1"] or time.time()
-    start = max(0.0, end - args.hours * 3600)   # ★ P5：防止负时间戳让 localtime 报错
+    start = max(0.0, end - args.hours * 3600)   # * P5：防止负时间戳让 localtime 报错
 
     data, total_anom = {}, 0
     print("=" * 74)
@@ -225,7 +225,7 @@ def main():
     for metric, label, _c, scale in PANELS:
         rows = load_buckets(conn, args.device, metric, start, end, args.interval)
         data[metric] = rows
-        ok = valid_rows(rows)          # ★ P5：统计只用有效桶
+        ok = valid_rows(rows)          # * P5：统计只用有效桶
         if ok:
             base_n = max(3, int(len(ok) * 0.3))
             bm, bs = mean([r["avg"] for r in ok[:base_n]]), stdev([r["avg"] for r in ok[:base_n]])
@@ -253,11 +253,11 @@ def main():
 
     # ---------------- 明细表 ----------------
     detail_rows = ""
-    vib = valid_rows(data.get("vibration_mm_s", []))   # ★ P5
+    vib = valid_rows(data.get("vibration_mm_s", []))   # * P5
     for r in vib[-args.detail:][::-1]:
         sd = std_from(r["sum_sq"], r["avg"], r["cnt"])
-        # 阈值 0.5 的量纲是 mm/s（本表只列振动）；它是经验值，应按设备标定（task-001 S6）
-        flag = "⚠️" if sd > 0.5 else ""
+        # 阈值 0.5 的量纲是 mm/s（本表只列振动）；它是经验值，应按设备标定
+        flag = "[warn]" if sd > 0.5 else ""
         detail_rows += (f"<tr><td>{fmt_ts(r['bucket_epoch'], '%m-%d %H:%M')}</td>"
                         f"<td>{r['avg']:.4f}</td><td>{r['min']:.4f}</td><td>{r['max']:.4f}</td>"
                         f"<td>{sd:.4f}</td><td>{r['cnt']}</td><td>{flag}</td></tr>")

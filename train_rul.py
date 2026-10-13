@@ -155,14 +155,14 @@ def main():
         print(f"[ERROR] 找不到 {args.data}"); sys.exit(1)
 
     rows = load_csv(args.data)
-    # ★ B3 修复：这里只建【不含基线】的基础特征；
-    #   健康基线由 HealthBaseline 放在每个模型的管线里，cross_val_predict 会逐折重拟合 ✅
+    # * B3 修复：这里只建【不含基线】的基础特征；
+    #   健康基线由 HealthBaseline 放在每个模型的管线里，cross_val_predict 会逐折重拟合 [ok]
     X, _y_cls = build_base_features(rows, args.window)
     names = ALL_NAMES
     y = build_target(rows)
-    # ★ E3 修复（Codex task-004）：按【运行段】分组做 K 折 ——
+    # * E3 修复：按【运行段】分组做 K 折 ——
     #   原来 KFold(shuffle=True) 会让同一段退化过程同时进训练折与验证折，
-    #   而且窗口还是用全量数据构造的（跨折）✗ 现在折间不共享运行段 ✅
+    #   而且窗口还是用全量数据构造的（跨折）[err] 现在折间不共享运行段 [ok]
     _runs = np.array([r.get("run", 1) for r in rows])
     cv = GroupKFold(n_splits=args.folds)
 
@@ -245,8 +245,8 @@ def main():
             f.write(f"<div class='card'>{svg_scatter(y, preds[name], name)}</div>")
         f.write("</body></html>")
 
-    # ★ B6 修复（Codex task-002）：models/ 在 .gitignore 里，
-    # 全新 clone 没有该目录 → 原来 open() 会直接 FileNotFoundError ✗
+    # * B6 修复：models/ 在 .gitignore 里，
+    # 全新 clone 没有该目录 → 原来 open() 会直接 FileNotFoundError [err]
     os.makedirs("models", exist_ok=True)
     with open("models/rul_model.json", "w", encoding="utf-8") as f:
         json.dump({"features": names, "max_rul_hours": MAX_RUL_HOURS,

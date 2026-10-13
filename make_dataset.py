@@ -89,13 +89,13 @@ def main():
                          "用于检验模型是否真的比阈值基线强）")
     ap.add_argument("--runs", type=int, default=20,
                     help="独立运行段数：每段各自经历 健康→劣化。"
-                         "★ E3 修复（Codex task-004）：切分必须按【运行段】而不是按行随机，"
-                         "否则同一段退化过程会同时出现在训练集和测试集里 ✗")
+                         "* E3 修复：切分必须按【运行段】而不是按行随机，"
+                         "否则同一段退化过程会同时出现在训练集和测试集里 [err]")
     ap.add_argument("--out", default="data/dataset.csv")
     args = ap.parse_args()
 
-    # ★ E3 修复：生成 runs 条【独立】运行段，每段一个独立随机种子，段内按时间排序
-    # ★ task-005 复审指出：--n 不能整除 --runs、或 runs 太小，会产生分配不均/退化输入 ✗
+    # * E3 修复：生成 runs 条【独立】运行段，每段一个独立随机种子，段内按时间排序
+    # *退化输入 [err]
     if args.runs < 2:
         sys.exit("[ERROR] --runs 至少为 2（1 段无法做运行段分组切分）")
     if args.n % args.runs != 0:
@@ -112,7 +112,7 @@ def main():
             r["run"] = rid
         part.sort(key=lambda r: r["t"])          # 段内恢复真实时间顺序
         rows.extend(part)
-    # 不再整体 shuffle：时间顺序是窗口特征因果性的前提 ✅
+    # 不再整体 shuffle：时间顺序是窗口特征因果性的前提 [ok]
 
     os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
     with open(args.out, "w", newline="", encoding="utf-8") as f:

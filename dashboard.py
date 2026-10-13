@@ -98,10 +98,10 @@ def fmt_ts(ep, pattern="%m-%d %H:%M"):
 def valid_rows(rows):
     """只保留 avg/min/max 都非 NULL 的桶。
 
-    ★ P5 修复（Codex task-002）：上一轮我只在 panel_svg 里过滤缺测桶，
+    * P5 修复：上一轮我只在 panel_svg 里过滤缺测桶，
       但主流程统计与明细表仍直接用全量 rows —— 遇到"整桶缺测"时
       mean([None,...]) 会抛 TypeError、明细表格式化 None 也会崩。
-      现在所有消费方共用这一个函数 ✅
+      现在所有消费方共用这一个函数 [ok]
     """
     return [r for r in rows
             if r["avg"] is not None and r["min"] is not None and r["max"] is not None]

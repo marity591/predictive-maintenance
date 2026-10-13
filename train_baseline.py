@@ -15,7 +15,7 @@
 或（已装好依赖时）：
     python train_baseline.py --data data/dataset.csv
 
-★ 工程要点（面试可讲）
+* 工程要点（面试可讲）
     1. **特征必须反映"相对健康基线的偏移"**：绝对振动值在不同设备/工况间不可比，
        真实系统会在调试期标定一次基线，之后看"偏离基线多少"。
        这里用训练集健康样本的 μ/σ 生成两个 delta 特征。
@@ -24,8 +24,8 @@
     3. **分层划分 + 固定随机种子**：保证对比公平、结果可复现。
     4. **只报准确率是耍流氓**：故障检测更关心**召回率**（漏报代价远高于误报）。
     5. **切分必须早于特征拟合**（B3 修复）：健康基线 μ/σ 只能看训练折的健康样本；
-       原实现先在全量上算基线，导致测试集信息泄漏、指标偏乐观 ✅
-       现在基线是一个 fold-safe 的 sklearn transformer，5 折 CV 会逐折重拟合 ✅
+       原实现先在全量上算基线，导致测试集信息泄漏、指标偏乐观 [ok]
+       现在基线是一个 fold-safe 的 sklearn transformer，5 折 CV 会逐折重拟合 [ok]
 """
 
 import argparse
@@ -103,12 +103,12 @@ def load_csv(path):
 def build_base_features(rows, window=10):
     """构造【不含基线偏移】的 8 维基础特征。
 
-    ★ B3 修复（Codex task-002 指出）：原实现在切分之前就用【全量健康样本】
+    * B3 修复：原实现在切分之前就用【全量健康样本】
       估计 μ/σ 并生成 vib_delta_base / temp_delta_base，测试集信息泄漏进了特征。
       现在这里只做"不依赖标签"的事（4 个测点 + 4 个因果窗口特征）；
       "相对健康基线的偏移"交给下面的 HealthBaseline —— 它只在【传入的那一份数据】
-      的健康样本上拟合，配合 sklearn Pipeline 就能保证 5 折 CV 逐折拟合 ✅
-    窗口是**因果**的（只看当前及之前 window-1 个点），不含未来信息 ✅
+      的健康样本上拟合，配合 sklearn Pipeline 就能保证 5 折 CV 逐折拟合 [ok]
+    窗口是**因果**的（只看当前及之前 window-1 个点），不含未来信息 [ok]
     """
     # * E3 修复：窗口【不得跨运行段】——
     #   不同运行段之间没有时间连续性，跨段取窗口等于把两段随意拼接 [err]
@@ -144,7 +144,7 @@ class HealthBaseline(BaseEstimator, TransformerMixin):
 
     为什么必须是 transformer 而不是普通函数：
       · fit  只看见训练折（且只用其中 health==0 的行）→ 测试/验证折信息不参与拟合
-      · transform 用冻结的 μ/σ → 放进 Pipeline 后，cross_val_predict 每一折都会重新拟合 ✅
+      · transform 用冻结的 μ/σ → 放进 Pipeline 后，cross_val_predict 每一折都会重新拟合 [ok]
     """
 
     VIB_COL, TEMP_COL = 1, 0

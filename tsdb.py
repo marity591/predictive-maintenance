@@ -23,7 +23,7 @@
     query  --metric ...        按分辨率查询（raw / 1m）
     stats                      看行数、时间跨度、磁盘占用、聚合压缩比
     retention --raw-days N     删除超期原始点（聚合数据保留）
-    verify                     ★ 自检：造数 → 聚合 → 对比查询正确性与耗时
+    verify                     * 自检：造数 → 聚合 → 对比查询正确性与耗时
 """
 
 import argparse
@@ -119,7 +119,7 @@ def seed_demo(conn, hours: float, interval_s: float, device: str, seed: int = 42
 def rollup(conn, interval_s: int = 60, device: str = None, since: float = 0.0):
     """把原始点聚合成 interval_s 宽的桶；幂等（重跑只会覆盖同一批桶）
 
-    ★ since 会被【向下对齐到桶边界】（Codex 在 task-001 复现的真实缺陷）：
+    * since 会被【向下对齐到桶边界】（Codex 在：
       否则增量聚合会用半个桶的统计覆盖掉整桶的聚合值 ——
       epoch 0..59 的桶先全量得到 cnt=60/avg=29.5，
       再 rollup(since=30) 就变成 cnt=30/avg=44.5（是数据错误，不是主键冲突）。
@@ -188,12 +188,12 @@ def query_raw(conn, metric, device, start, end):
 
 
 def query_agg(conn, metric, device, start, end, interval_s=60):
-    """按【与窗口相交的完整桶】契约返回聚合行（task-001 后明确的契约）。
+    """按【与窗口相交的完整桶】契约返回聚合行。
 
     · 下界：floor(start/interval)*interval —— 返回所有与 [start,end) 相交的桶
     · 上界：ceil(end/interval)*interval（排他）—— end 正好在桶边界时不含该桶
     · end <= start：返回空（原来空窗口仍返回一个桶，与 query_raw 的半开语义不一致）
-    ⚠️ 相交桶可能含窗口外的样本；需要严格窗口统计时应回查 ts_raw。
+    [warn] 相交桶可能含窗口外的样本；需要严格窗口统计时应回查 ts_raw。
     """
     if end <= start:
         return []
@@ -212,10 +212,10 @@ def query_agg(conn, metric, device, start, end, interval_s=60):
 def _deleted_before(conn):
     """原始点【删除水位】：epoch 小于它的原始点曾被 retention 不可恢复地删除过。
 
-    ★ A/B 修复（Codex task-004）：不能用 COUNT 判断"桶是否完整" ——
-      ① 数量回升 ≠ 成员完整：删掉旧点再补入同数新点，COUNT 会伪装成"完整"✗
-      ② COUNT 守卫还会挡住合法更正：某点被更正为 NULL 会让有效计数下降 ✗
-    水位是唯一可靠的信号：它只在真正发生删除时前进，且与删除同事务落盘 ✅
+    * A/B 修复：不能用 COUNT 判断"桶是否完整" ——
+      ① 数量回升 ≠ 成员完整：删掉旧点再补入同数新点，COUNT 会伪装成"完整"[err]
+      ② COUNT 守卫还会挡住合法更正：某点被更正为 NULL 会让有效计数下降 [err]
+    水位是唯一可靠的信号：它只在真正发生删除时前进，且与删除同事务落盘 [ok]
     """
     conn.execute("CREATE TABLE IF NOT EXISTS ts_meta (key TEXT PRIMARY KEY, value REAL)")
     row = conn.execute("SELECT value FROM ts_meta WHERE key='raw_deleted_before'").fetchone()
@@ -248,7 +248,7 @@ def mark_deleted_before(conn, cutoff):
     """【迁移助手】显式声明历史删除截点（供既有库升级使用）。
 
     只应在你确知"epoch 小于 cutoff 的原始点已被不可恢复地删除"时调用；
-    若该库从未跑过 retention，用 0.0 显式声明即可 ✅
+    若该库从未跑过 retention，用 0.0 显式声明即可 [ok]
     """
     new = _set_deleted_before(conn, float(cutoff))
     conn.commit()
@@ -298,8 +298,8 @@ def fmt_ts(ep):
 
 
 def fmt_num(v, digits=4):
-    """B8 修复（Codex task-002）：整桶缺测时 avg/min/max 是 NULL，
-    原来 f"{fmt_num(row['avg'])}" 会对 None 抛 TypeError ✗ 统一走这里，输出 —"""
+    """B8 修复：整桶缺测时 avg/min/max 是 NULL，
+    原来 f"{fmt_num(row['avg'])}" 会对 None 抛 TypeError [err] 统一走这里，输出 —"""
     return "—" if v is None else f"{v:.{digits}f}"
 
 

@@ -96,7 +96,12 @@ def load_csv(path):
                 "_ts": r.get("ts", ""),
             })
     # * E3 修复：按 (运行段, 时间序) 排好，窗口才有因果意义
-    rows.sort(key=lambda r: (r["run"], r["_idx"]))
+    def _tsec(rr):
+        m = re.search(r"(\d+(?:\.\d+)?)", rr.get("_ts", "") or "")
+        if not m:
+            raise ValueError("数据集缺少可解析的 ts 列（形如 t+1080s）；无法确定时间顺序")
+        return float(m.group(1))
+    rows.sort(key=lambda r: (r["run"], _tsec(r)))
     return rows
 
 

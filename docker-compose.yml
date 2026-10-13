@@ -1,0 +1,120 @@
+# ============================================================================
+#  predictive-maintenance —— 一键起全栈
+#
+#  启动：  docker compose up -d --build
+#  看板：  http://localhost:8080/dashboard.html
+#  停止：  docker compose down          （数据在 ./data，不会丢）
+#  建模：  docker compose --profile modeling run --rm modeling
+#
+#  数据流：
+#    simulator ──Modbus TCP──▶ collector ──▶ SQLite(sensor.db)
+#                                              ├──▶ bridge ──MQTT──▶ broker
+#                                              └──▶ ingest ──▶ tsdb.db/ts_raw
+#                                                               └──▶ rollup ──▶ dashboard ──▶ :8080
+# ============================================================================
+name: predictive-maintenance
+
+x-common: &common
+  build:
+    context: .
+    target: base
+  image: predictive-maintenance:latest
+  restart: unless-stopped
+  working_dir: /app
+  environment:
+    TZ: Asia/Shanghai
+    PYTHONUNBUFFERED: "1"
+  volumes:
+    - ./data:/app/data
+    - ./logs:/app/logs
+    - ./docs:/app/docs
+    - ./models:/app/models
+
+services:
+
+  # ---------------- 设备侧：Modbus TCP 从站（无硬件时的数据源）----------------
+  simulator:
+    <<: *common
+    container_name: pm-simulator
+    command: python modbus_sim.py --host 0.0.0.0 --port 5020 --fault-after 300
+
+  # ---------------- 采集侧：轮询 Modbus 并落库（断线重连）----------------
+  collector:
+    <<: *common
+    container_name: pm-collector
+    depends_on:
+      - simulator
+    command: >
+      python collector.py --host simulator --port 5020
+      --duration 0 --interval 1 --db data/sensor.db --log logs/collector.log
+
+  # ---------------- 边缘/云 Broker（生产可换 EMQX）----------------
+  broker:
+    image: eclipse-mosquitto:2
+    container_name: pm-broker
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./deploy/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./data/mosquitto:/mosquitto/data
+      - ./logs/mosquitto:/mosquitto/log
+
+  # ---------------- 上行桥接：SQLite → MQTT（存储转发 + 持久化游标）----------------
+  bridge:
+    <<: *common
+    container_name: pm-bridge
+    depends_on:
+      - collector
+      - broker
+    command: >
+      python mqtt_bridge.py --host broker --port 1883 --follow
+      --db data/sensor.db --topic-device line1 --qos 1
+
+  # ---------------- 每分钟先幂等导入，再降采样；导入失败则跳过本轮聚合 ----------------
+  rollup:
+    <<: *common
+    container_name: pm-rollup
+    depends_on:
+      - collector
+    command: >
+      sh -c "while true; do
+               python ingest.py --source data/sensor.db --db data/tsdb.db --device line1 &&
+               python tsdb.py --db data/tsdb.db rollup --interval 60;
+               sleep 60;
+             done"
+
+  # ---------------- 看板：定期重生成 HTML，并用静态服务器对外提供 ----------------
+  dashboard:
+    <<: *common
+    container_name: pm-dashboard
+    depends_on:
+      - rollup
+    ports:
+      - "8080:8080"
+    command: >
+      sh -c "python -m http.server 8080 --directory docs &
+             while true; do
+               python dashboard.py --db data/tsdb.db --device line1 --hours 24
+                 --out docs/dashboard.html --refresh 30;
+               sleep 30;
+             done"
+
+  # ---------------- 建模（按需运行，不常驻；用 --profile modeling 才构建）----------------
+  modeling:
+    build:
+      context: .
+      target: modeling
+    image: predictive-maintenance:modeling
+    profiles: ["modeling"]
+    working_dir: /app
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      - ./data:/app/data
+      - ./docs:/app/docs
+      - ./models:/app/models
+    command: >
+      sh -c "python make_dataset.py --n 2000 --out data/dataset.csv &&
+             python train_baseline.py --data data/dataset.csv --out docs/model_comparison.md &&
+             python train_rul.py --data data/dataset.csv --out docs/rul_report.md"

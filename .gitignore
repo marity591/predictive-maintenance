@@ -1,0 +1,66 @@
+# ---------------- Python ----------------
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+.python-version
+*.egg-info/
+dist/
+build/
+
+# ---------------- 本项目生成物 ----------------
+# 采集数据库与日志属于"运行产物"，不纳入版本库
+data/*.db
+data/*.db-journal
+data/reconnect_test.db
+logs/*.log
+logs/*.out
+logs/*.err
+
+# 说明：带标签数据集体积小、且是脚本可复现的，可以选择提交或忽略。
+# 这里保留 data/*.csv（便于他人直接复现建模结果）；如不想要，取消下一行注释。
+# data/*.csv
+
+# 模型产物（脚本可复现）
+models/*.json
+
+# 简历/预览等与本项目无关的临时文件
+*.tmp
+*.bak
+~$*
+
+# ---------------- 编辑器 / 系统 ----------------
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+data/mqtt_cursor_*.json
+# 运行状态（发送游标），由桥接进程维护，不进版本库
+
+# 带后缀的备份（如 README.md.bak-reorder）
+*.bak-*
+*.bak.*
+*.orig
+*.rej
+
+# ---------------- P2 补充（Codex task-002 D 组指出）----------------
+# SQLite 的 WAL 侧文件与共享内存索引：它们可能装着【还没 checkpoint 的真实数据】，
+# 原来只忽略了 data/*.db 与 *.db-journal，WAL/SHM 会被误提交 ✗
+data/*.db-wal
+data/*.db-shm
+*.db-wal
+*.db-shm
+# 环境变量与凭据：本项目当前没有这些文件，但先挡住，避免将来误提交
+.env
+.env.*
+*.env
+.credentials.yaml
+
+# ---------------- 生成物（跑脚本就会有，不入库） ----------------
+docs/
+models/
+data/*.csv

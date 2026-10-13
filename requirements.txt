@@ -1,0 +1,16 @@
+# 本项目的依赖说明
+#
+# ★ 采集 / 分析 / 数据集生成 这三个脚本【只用 Python 标准库】，
+#   不需要安装任何第三方包（sqlite3、socket、struct、csv、math 都是内置的）。
+#   这样做的目的：别人 clone 下来就能直接跑，不受环境与网络影响。
+#
+# 只有【建模脚本】需要 numpy + scikit-learn：
+#   train_baseline.py / train_rul.py
+#
+# 推荐用 uv 临时环境运行（自动走国内镜像，无需预装）：
+#   uv run --python 3.12 --with scikit-learn --with numpy python train_baseline.py
+#   uv run --python 3.12 --with scikit-learn --with numpy python train_rul.py
+#
+# 如果你用 pip / conda，则按下面两行安装即可：
+numpy>=1.26
+scikit-learn>=1.4

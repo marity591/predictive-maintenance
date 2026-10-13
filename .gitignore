@@ -46,7 +46,7 @@ data/mqtt_cursor_*.json
 
 # ---------------- P2 补充（Codex task-002 D 组指出）----------------
 # SQLite 的 WAL 侧文件与共享内存索引：它们可能装着【还没 checkpoint 的真实数据】，
-# 原来只忽略了 data/*.db 与 *.db-journal，WAL/SHM 会被误提交 ✗
+# 原来只忽略了 data/*.db 与 *.db-journal，WAL/SHM 会被误提交
 data/*.db-wal
 data/*.db-shm
 *.db-wal

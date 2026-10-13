@@ -137,7 +137,7 @@ def main():
     print("=" * 62)
     print(f"  数据集已生成 : {os.path.abspath(args.out)}")
     print(f"  总样本       : {len(rows)}   健康 {len(rows)-n_bad} / 故障 {n_bad}")
-    print(f"  运行段       : {args.runs} 段（每段 {per_run} 条）—— 切分按 run 分组 ✅")
+    print(f"  运行段       : {args.runs} 段（每段 {per_run} 条）—— 切分按 run 分组")
     print(f"  振动(健康)   : {sum(vib_h)/len(vib_h):.3f} ± "
           f"{math.sqrt(sum((x-sum(vib_h)/len(vib_h))**2 for x in vib_h)/(len(vib_h)-1)):.3f} mm/s")
     print(f"  振动(故障)   : {sum(vib_f)/len(vib_f):.3f} ± "

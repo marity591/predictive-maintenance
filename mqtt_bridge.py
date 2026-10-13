@@ -183,11 +183,11 @@ def main():
                                 rc = client.connect()
                                 if rc != 0:
                                     raise ConnectionError(f"Broker 拒绝连接：return code={rc}")
-                                print(f"  🔄 已重连，重试 #{row['id']}")
+                                print(f"已重连，重试 #{row['id']}")
                             client.publish(topic, payload, qos=args.qos)
                         except OSError as e:
                             failed += 1
-                            print(f"  ⚠️ #{row['id']} 未确认（{e.__class__.__name__}: {e}）—— "
+                            print(f"#{row['id']} 未确认（{e.__class__.__name__}: {e}）—— "
                                   f"游标仍为 #{last_id}，暂不发送后续行")
                             if client:
                                 try:
@@ -204,7 +204,7 @@ def main():
                     sent += 1
                     if sent % 10 == 0 or sent <= 3:
                         result = "客户端确认成功" if args.qos == 1 else "已写入 socket（未确认送达）"
-                        print(f"  ✅ #{row['id']} {result}: vib={row['vibration_mm_s']:.2f} "
+                        print(f" #{row['id']} {result}: vib={row['vibration_mm_s']:.2f} "
                               f"temp={row['temperature_c']:.1f}")
                 if args.max and sent >= args.max:
                     break

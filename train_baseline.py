@@ -98,10 +98,18 @@ def load_csv(path):
             })
     # * E3 修复：按 (运行段, 时间序) 排好，窗口才有因果意义
     def _tsec(rr):
-        m = re.search(r"(\d+(?:\.\d+)?)", rr.get("_ts", "") or "")
+        # 只支持生成器写出的唯一格式 t+<秒>s。
+        # 不用宽松的 re.search：那会把 "abc123" 也算成 123，从而在"按时间排序"的
+        # 名义下悄悄排错顺序。非法格式直接报错，别默默接受。
+        raw = (rr.get("_ts") or "").strip()
+        m = re.fullmatch(r"t\+(\d+(?:\.\d+)?)s", raw)
         if not m:
-            raise ValueError("数据集缺少可解析的 ts 列（形如 t+1080s）；无法确定时间顺序")
-        return float(m.group(1))
+            raise ValueError(
+                "数据集 ts 列格式不支持: %r（唯一支持格式为 t+<秒>s，例如 t+1080s）" % raw)
+        v = float(m.group(1))
+        if v != v or v in (float("inf"), float("-inf")):
+            raise ValueError("数据集 ts 秒数必须有限: %r" % raw)
+        return v
     rows.sort(key=lambda r: (r["run"], _tsec(r)))
     return rows
 
@@ -254,7 +262,7 @@ def main():
     idx_tr, idx_te = next(_gss.split(np.zeros(len(rows)), groups=_runs))
     idx_tr, idx_te = np.sort(idx_tr), np.sort(idx_te)
     print(f"  切分方式 : 按运行段分组（训练 {len(set(_runs[idx_tr]))} 段 / "
-          f"测试 {len(set(_runs[idx_te]))} 段，测试段训练时未见过 ✅）")
+          f"测试 {len(set(_runs[idx_te]))} 段，测试段训练时未见过）")
     tr_rows = [rows[i] for i in idx_tr]
     te_rows = [rows[i] for i in idx_te]
     Xtr, ytr = build_base_features(tr_rows, args.window)

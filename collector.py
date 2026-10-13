@@ -166,12 +166,12 @@ def main():
             if sock is None:
                 try:
                     sock = connect()
-                    log(f"✅ 已连接 Modbus 从站 {args.host}:{args.port}")
+                    log(f"已连接 Modbus 从站 {args.host}:{args.port}")
                     backoff = 1.0
                 except OSError as e:
                     fail += 1
                     reconnects += 1
-                    log(f"⚠️ 连接失败（{e.__class__.__name__}: {e}），{backoff:.0f} 秒后重试")
+                    log(f"连接失败（{e.__class__.__name__}: {e}），{backoff:.0f} 秒后重试")
                     time.sleep(backoff)
                     backoff = min(backoff * 2, 15.0)
                     continue

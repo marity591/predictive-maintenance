@@ -29,13 +29,15 @@
 
     # 或按步骤
     python modbus_sim.py                          # 启动模拟从站（5020）
-    python collector.py --seconds 60              # 采集 60 秒到 data/sensor.db
+    python collector.py --duration 60             # 采集 60 秒到 data/sensor.db
     python ingest.py --source data/sensor.db --db data/tsdb.db --device line1
     python tsdb.py --db data/tsdb.db rollup --interval 60
     python dashboard.py --db data/tsdb.db --device line1 --hours 24 --out docs/dashboard.html
 
     # 建模（需要 scikit-learn）
-    uv run --python 3.12 --with scikit-learn --with numpy python make_dataset.py
+    # 复现下面“效果”一节的数字（默认 3000 条 / 20 段也可跑，数字会不同）
+    uv run --python 3.12 --with scikit-learn --with numpy python make_dataset.py --n 4000 --runs 20
+    uv run --python 3.12 --with scikit-learn --with numpy python make_dataset.py --n 4000 --runs 20 --noise 2 --fault-gain 1.2 --out data/dataset_hard.csv
     uv run --python 3.12 --with scikit-learn --with numpy python train_baseline.py
     uv run --python 3.12 --with scikit-learn --with numpy python train_rul.py
 
@@ -66,7 +68,8 @@ Docker Compose 起全套（模拟器 / 采集 / Broker / 桥接 / 导入 / 降�
     RUL 回归   随机森林 MAE 0.29 h / R^2 0.9994【默认集】
                随机森林 MAE 0.61 h / R^2 0.9976【困难集】
 
-运行 `train_*.py` 会重新生成 `docs/` 下的对比表与报告。
+运行 `train_*.py` 会重新生成 `docs/` 下的对比表与报告；
+困难集用 `train_baseline.py --data data/dataset_hard.csv` 复现。
 
 ## 已知限制
 

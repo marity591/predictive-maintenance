@@ -19,9 +19,6 @@ logs/*.log
 logs/*.out
 logs/*.err
 
-# 说明：带标签数据集体积小、且是脚本可复现的，可以选择提交或忽略。
-# 这里保留 data/*.csv（便于他人直接复现建模结果）；如不想要，取消下一行注释。
-# data/*.csv
 
 # 模型产物（脚本可复现）
 models/*.json
@@ -64,3 +61,6 @@ data/*.db-shm
 docs/
 models/
 data/*.csv
+
+# MQTT Broker 的持久化目录（docker-compose 挂载）
+data/mosquitto/

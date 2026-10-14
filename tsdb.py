@@ -119,7 +119,7 @@ def seed_demo(conn, hours: float, interval_s: float, device: str, seed: int = 42
 def rollup(conn, interval_s: int = 60, device: str = None, since: float = 0.0):
     """把原始点聚合成 interval_s 宽的桶；幂等（重跑只会覆盖同一批桶）
 
-    * since 会被【向下对齐到桶边界】（Codex 在：
+    * since 会被【向下对齐到桶边界】；
       否则增量聚合会用半个桶的统计覆盖掉整桶的聚合值 ——
       epoch 0..59 的桶先全量得到 cnt=60/avg=29.5，
       再 rollup(since=30) 就变成 cnt=30/avg=44.5（是数据错误，不是主键冲突）。

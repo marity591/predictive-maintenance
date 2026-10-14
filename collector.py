@@ -101,7 +101,7 @@ def parse_read_response(sock: socket.socket, expect_txid: int, qty: int):
 def init_db(path: str):
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
     conn = sqlite3.connect(path)
-    cols = ", ".join(f"{name} REAL" for name, _k, _u in REG_MAP)
+    cols = ", ".join(f"{name} REAL"for name, _k, _u in REG_MAP)
     conn.execute(f"""
         CREATE TABLE IF NOT EXISTS sensor_readings (
             id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -137,7 +137,7 @@ def main():
         logf.write(line + "\n")
         logf.flush()
 
-    log("=" * 58)
+    log("="* 58)
     log(f"采集器启动 target={args.host}:{args.port} unit={args.unit} "
         f"interval={args.interval}s duration={args.duration}s db={args.db}")
 
@@ -186,16 +186,16 @@ def main():
                 now = dt.datetime.now()
                 db.execute(
                     "INSERT INTO sensor_readings (ts, epoch, temperature_c, vibration_mm_s, speed_rpm, current_a, quality)"
-                    " VALUES (?,?,?,?,?,?,?)",
+                    "VALUES (?,?,?,?,?,?,?)",
                     (now.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3], time.time(), *values, "good"),
                 )
                 db.commit()
                 ok += 1
-                log(" 采样 #{:<5} 温度={:5.1f}℃  振动={:5.2f}mm/s  转速={:6.0f}rpm  电流={:5.2f}A"
+                log("采样 #{:<5} 温度={:5.1f}℃  振动={:5.2f}mm/s  转速={:6.0f}rpm  电流={:5.2f}A"
                     .format(ok, values[0], values[1], values[2], values[3]))
             except (OSError, ConnectionError, ValueError, IOError, struct.error, IndexError) as e:   # B4: 解析类异常也重连，别让采集进程崩掉
                 fail += 1
-                log(f"❌ 采集异常（{e.__class__.__name__}: {e}）→ 断开重连")
+                log(f"采集异常（{e.__class__.__name__}: {e}）→ 断开重连")
                 try:
                     sock.close()
                 except OSError:
@@ -209,7 +209,7 @@ def main():
             # 每 30 秒打一次心跳
             if time.time() - last_report >= 30:
                 last_report = time.time()
-                log(f"📊 心跳：成功 {ok} 次 / 失败 {fail} 次 / 重连 {reconnects} 次")
+                log(f"心跳：成功 {ok} 次 / 失败 {fail} 次 / 重连 {reconnects} 次")
     except KeyboardInterrupt:
         log("收到 Ctrl+C，正在退出…")
     finally:
@@ -227,13 +227,13 @@ def main():
     logf.close()
 
     # 控制台小结（便于截图为简历/README 佐证）
-    print("\n" + "=" * 58)
-    print(f"  成功采样 : {ok} 条")
-    print(f"  失败次数 : {fail} 次")
-    print(f"  重连次数 : {reconnects} 次")
-    print(f"  成功率   : {rate:.1f}%")
-    print(f"  数据库   : {os.path.abspath(args.db)}")
-    print("=" * 58)
+    print("\n"+ "="* 58)
+    print(f"成功采样 : {ok} 条")
+    print(f"失败次数 : {fail} 次")
+    print(f"重连次数 : {reconnects} 次")
+    print(f"成功率   : {rate:.1f}%")
+    print(f"数据库   : {os.path.abspath(args.db)}")
+    print("="* 58)
 
 
 if __name__ == "__main__":

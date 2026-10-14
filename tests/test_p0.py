@@ -286,3 +286,7 @@ class IngestTests(Fixture):
 class DocumentationTests(unittest.TestCase):
     longMessage = False
 
+
+if __name__ == "__main__":
+    import unittest
+    unittest.main(verbosity=2)

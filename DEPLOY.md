@@ -35,7 +35,7 @@ predictive-maintenance/
 | `simulator` | 本项目 | Modbus TCP 从站（无硬件时的数据源，带故障注入）| 5020（容器内）|
 | `collector` | 本项目 | 轮询从站 → 工程量换算 → SQLite，断线指数退避重连 | — |
 | `broker` | `eclipse-mosquitto:2` | MQTT Broker（生产建议换 EMQX）| 1883 |
-| `bridge` | 本项目 | SQLite → MQTT 存储转发，失败行先重试；补发前提见 README §11.2 | — |
+| `bridge` | 本项目 | SQLite → MQTT 存储转发，失败行先重试；补发需源库/游标完好、单一桥接写者及最终恢复连接 | — |
 | `rollup` | 本项目 | 每分钟先运行 `ingest.py` 导入，成功后聚合 1 分钟桶 | — |
 | `dashboard` | 本项目 | 定期重生成 HTML 看板 + 静态服务器 | **8080** |
 | `modeling` | 本项目(modeling) | 按需跑数据集生成 + 分类 + RUL 回归（不常驻）| — |
@@ -112,7 +112,7 @@ python tsdb.py --db data/tsdb.db rollup --interval 60
 
 源库约定为追加式、id 单调递增，不能原地替换/重编号或修改已导入旧行；迁移源路径须先完成旧库导入，
 同一设备的 epoch 必须唯一标识一次采样。`quality` 仅透传，本批次不改变 tsdb 的质量过滤/聚合策略。
-S1 的部分 retention 桶、S3 的小数查询上界和 E1 的全 NULL 看板仍有已知问题，见 README §14。
+相交桶可能包含查询窗口外样本；升级既有库时须显式声明历史删除水位。其他限制见 README 的“已知限制”。
 
 `python -B -m unittest discover -s tests -v` 含本地 TCP 模拟采集一条 → 导入两次 → 聚合的端到端用例。
 它验证 Python 命令与数据库链路；本批次没有运行 Docker，也没有真实设备/生产 Broker 验收。

@@ -335,7 +335,7 @@ def main():
         f.write("# 模型对比结果\n\n")
         f.write(f"- 数据集：`{os.path.basename(args.data)}`（{len(rows)} 条，"
                 f"健康 {int((y==0).sum())} / 故障 {int((y==1).sum())}）\n")
-        f.write(f"- 训练/测试：{len(ytr)} / {len(yte)}（分层抽样，seed={args.seed}）\n")
+        f.write(f"- 训练/测试：{len(ytr)} / {len(yte)}（按运行段分组切分，GroupShuffleSplit，seed={args.seed}）\n")
         f.write(f"- 特征（{len(names)} 维）：{', '.join('`'+n+'`' for n in names)}\n")
         f.write(f"- 健康基线：振动 μ={meta['base_vib_mu']:.3f}、σ={meta['base_vib_sigma']:.3f}，"
                 f"阈值 μ+3σ={meta['threshold_vib']:.3f} mm/s\n\n")

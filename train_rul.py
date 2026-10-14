@@ -170,7 +170,7 @@ def main():
     print(f"  RUL 回归  数据集 {os.path.abspath(args.data)}  样本 {len(rows)}")
     print(f"  标签: RUL_hours = (1 - severity) × {MAX_RUL_HOURS:.0f}   "
           f"范围 {y.min():.1f} ~ {y.max():.1f} h   均值 {y.mean():.1f} h")
-    print(f"  验证: {args.folds} 折交叉验证（shuffle, seed={args.seed}）")
+    print(f"  验证: {args.folds} 折按运行段分组交叉验证（GroupKFold，无 shuffle；模型 seed={args.seed}）")
     print("=" * 78)
 
     models = [
@@ -214,7 +214,7 @@ def main():
         f.write(f"- 数据：`{os.path.basename(args.data)}`（{len(rows)} 条）\n")
         f.write(f"- 标签：`RUL_hours = (1 - severity) × {MAX_RUL_HOURS:.0f}`，"
                 f"范围 {y.min():.1f} ~ {y.max():.1f} h\n")
-        f.write(f"- 验证：{args.folds} 折交叉验证（shuffle，seed={args.seed}），"
+        f.write(f"- 验证：{args.folds} 折按运行段分组交叉验证（GroupKFold，无 shuffle；模型 seed={args.seed}），"
                 f"指标为全折汇总值 + 折间标准差\n")
         f.write(f"- 特征（{len(names)} 维）：{', '.join('`'+n+'`' for n in names)}\n\n")
         f.write("## 指标对比\n\n" + table + "\n")

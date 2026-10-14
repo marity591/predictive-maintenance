@@ -1,26 +1,20 @@
 # 工业设备数据采集与预测性维护
 
-一个从设备侧到看板的完整链路小项目：Modbus 采集 → 本地时序库 → MQTT 上行 → 故障分类与
-剩余寿命预测 → 静态看板。全部脚本只用 Python 标准库，建模部分用 scikit-learn。
+一个工业设备采集与预测性维护演示项目，包含 Modbus 采集、SQLite 时序库与静态看板、
+MQTT 上行，以及基于合成 CSV 的故障分类和剩余寿命回归。核心脚本使用 Python 标准库，
+建模使用 NumPy 和 scikit-learn。
 
 主要目的是把工业现场的几个环节串起来跑一遍：设备协议、数据落库与降采样、
 上行传输的可靠性、以及"模型到底比一条固定阈值强多少"。
 
 ## 架构
 
-    Modbus 模拟从站 ──▶ collector（手写 MBAP/PDU）──▶ SQLite: sensor.db
-                                                         │
-                                          ingest.py（幂等导入，device+epoch）
-                                                         ▼
-                        bridge（MQTT 3.1.1，存储转发 + 持久化游标）──▶ broker
-                                                         │
-                                                         ▼
-                    tsdb.db: ts_raw ──rollup──▶ ts_agg（降采样 / 保留策略）
-                                                         │
-                                    ┌────────────────────┴────────────────────┐
-                                    ▼                                         ▼
-                          train_baseline / train_rul                  dashboard.py（SVG）
-                          （分类 / 回归 + 交叉验证）                    + HTML 报告
+    Modbus 模拟从站 --> collector --> SQLite: sensor.db
+                                      |-- mqtt_bridge --> MQTT broker
+                                      `-- ingest --> ts_raw --> rollup --> ts_agg --> dashboard
+
+    make_dataset --> dataset.csv / dataset_hard.csv
+                  `-- train_baseline / train_rul --> 分类与 RUL 对比报告
 
 ## 快速开始
 

@@ -347,7 +347,7 @@ def cmd_verify(conn, args):
     print(f"  [verify]    桶 @ {fmt_ts(b)}  cnt={row['cnt']}  "
           f"avg={fmt_num(row['avg'])} (raw {fmt_num(raw[0])})  "
           f"min={fmt_num(row['min'])} (raw {fmt_num(raw[1])})  max={fmt_num(row['max'])} (raw {fmt_num(raw[2])})")
-    print(f"  [verify]    一致性校验: {'[ok] 通过' if ok else '❌ 不一致'}")
+    print(f"  [verify]    一致性校验: {'[ok] 通过' if ok else ' 不一致'}")
     print(f"  [verify]    推导标准差 = {std_from(row['sum_sq'], row['avg'], row['cnt']):.4f}")
 
     print("[verify] 4) 对比查询耗时：原始表 vs 聚合表（查最近 6 小时振动）")

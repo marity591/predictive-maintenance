@@ -69,7 +69,7 @@ Docker Compose 起全套（模拟器 / 采集 / Broker / 桥接 / 导入 / 降�
                随机森林 MAE 0.61 h / R^2 0.9976【困难集】
 
 运行 `train_*.py` 会重新生成 `docs/` 下的对比表与报告；
-困难集用 `train_baseline.py --data data/dataset_hard.csv` 复现。
+困难集用 `train_baseline.py --data data/dataset_hard.csv` 与 `train_rul.py --data data/dataset_hard.csv` 复现。
 
 ## 已知限制
 

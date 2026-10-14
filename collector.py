@@ -191,7 +191,7 @@ def main():
                 )
                 db.commit()
                 ok += 1
-                log("📥 采样 #{:<5} 温度={:5.1f}℃  振动={:5.2f}mm/s  转速={:6.0f}rpm  电流={:5.2f}A"
+                log(" 采样 #{:<5} 温度={:5.1f}℃  振动={:5.2f}mm/s  转速={:6.0f}rpm  电流={:5.2f}A"
                     .format(ok, values[0], values[1], values[2], values[3]))
             except (OSError, ConnectionError, ValueError, IOError, struct.error, IndexError) as e:   # B4: 解析类异常也重连，别让采集进程崩掉
                 fail += 1
